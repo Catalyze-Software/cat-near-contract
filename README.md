@@ -1,4 +1,6 @@
-# cat-on-near
+# cat-near-contract
+
+Smart contract to power the Catalyze app on Near.
 
 cargo-near-new-project-description
 

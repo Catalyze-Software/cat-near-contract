@@ -846,11 +846,12 @@ dependencies = [
 ]
 
 [[package]]
-name = "cat-on-near"
+name = "cat-near-contract"
 version = "0.1.0"
 dependencies = [
  "near-sdk",
  "near-workspaces",
+ "serde",
  "serde_json",
  "tokio",
 ]
