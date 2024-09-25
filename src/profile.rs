@@ -29,4 +29,18 @@ impl Contract {
 
         Some(ProfileResponse::from((account_id, profile.clone())))
     }
+
+    pub fn get_profiles(&self, account_ids: Vec<AccountId>) -> Vec<ProfileResponse> {
+        account_ids
+            .into_iter()
+            .map(|account_id| {
+                let profile = self
+                    .profiles
+                    .get(&account_id)
+                    .expect("Profile not found for the given account ID");
+
+                ProfileResponse::from((account_id, profile.clone()))
+            })
+            .collect()
+    }
 }
