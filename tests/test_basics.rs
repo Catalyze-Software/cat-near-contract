@@ -1,13 +1,11 @@
+use cat_near_contract::models::profile::ProfileResponse;
+use near_workspaces::{network::Sandbox, Account, Contract, Worker};
 use serde_json::json;
-use serde_json::Value;
 
-#[tokio::test]
-async fn test_contract_is_operational() -> Result<(), Box<dyn std::error::Error>> {
+async fn init() -> Result<(Worker<Sandbox>, Contract, Account), Box<dyn std::error::Error>> {
     let sandbox = near_workspaces::sandbox().await?;
     let contract_wasm = near_workspaces::compile_project("./").await?;
-
     let contract = sandbox.dev_deploy(&contract_wasm).await?;
-
     let user_account = sandbox.dev_create_account().await?;
 
     let outcome = user_account
@@ -17,6 +15,13 @@ async fn test_contract_is_operational() -> Result<(), Box<dyn std::error::Error>
         .await?;
     assert!(outcome.is_success());
 
+    Ok((sandbox, contract, user_account))
+}
+
+#[tokio::test]
+async fn test_add_profile() -> Result<(), Box<dyn std::error::Error>> {
+    let (_, contract, user_account) = init().await?;
+
     let outcome_post_profile = user_account
         .call(contract.id(), "add_profile")
         .args_json(json!({"post_profile": {
@@ -25,12 +30,30 @@ async fn test_contract_is_operational() -> Result<(), Box<dyn std::error::Error>
             "first_name": "Jaswinder",
             "last_name": "Singh",
             "extra": "extra"
-        }
-        }))
+        }}))
         .transact()
         .await?;
-    //println!("outcome_post_profile: {:?}", outcome_post_profile);
+
     assert!(outcome_post_profile.is_success());
+    Ok(())
+}
+
+#[tokio::test]
+async fn test_edit_profile() -> Result<(), Box<dyn std::error::Error>> {
+    let (_, contract, user_account) = init().await?;
+
+    // First, add a profile
+    let _ = user_account
+        .call(contract.id(), "add_profile")
+        .args_json(json!({"post_profile": {
+            "username": "jassification",
+            "display_name": "Jas",
+            "first_name": "Jaswinder",
+            "last_name": "Singh",
+            "extra": "extra"
+        }}))
+        .transact()
+        .await?;
 
     let outcome_update_profile = user_account
         .call(contract.id(), "edit_profile")
@@ -39,34 +62,96 @@ async fn test_contract_is_operational() -> Result<(), Box<dyn std::error::Error>
             "first_name": "Jas",
             "last_name": "Singh",
             "about": "About",
-            //"email": "email",
             "date_of_birth": 123456,
             "extra": "extra",
             "city":"Mumbai",
             "state_or_province":"Maharashtra",
             "country":"India",
             "profile_image":"profile_image",
-            //"banner_image":"banner_image",
             "skills":[1,2,3],
             "interests":[1,2,3],
             "causes":[1,2,3],
             "website":"website"
-        }
-        }))
+        }}))
         .transact()
         .await?;
-    //println!("outcome_update_profile: {:?}", outcome_update_profile);
-    assert!(outcome_update_profile.is_success());
 
-    let outcome_get_profile = user_account
-        .view(contract.id(), "get_profile")
-        .args_json(json!({ "account_id": user_account.id()}))
+    assert!(outcome_update_profile.is_success());
+    Ok(())
+}
+
+#[tokio::test]
+async fn test_get_profile() -> Result<(), Box<dyn std::error::Error>> {
+    let (_, contract, user_account) = init().await?;
+
+    // First, add a profile
+    let _ = user_account
+        .call(contract.id(), "add_profile")
+        .args_json(json!({"post_profile": {
+            "username": "jassification",
+            "display_name": "Jas",
+            "first_name": "Jaswinder",
+            "last_name": "Singh",
+            "extra": "extra"
+        }}))
+        .transact()
         .await?;
 
-    println!(
-        "outcome_get_profile: {:#?}",
-        outcome_get_profile.json::<Value>()
-    );
+    let outcome_get_profile: ProfileResponse = user_account
+        .view(contract.id(), "get_profile")
+        .args_json(json!({ "account_id": user_account.id()}))
+        .await?
+        .json()?;
 
+    assert_eq!(outcome_get_profile.username, "jassification");
+    assert_eq!(outcome_get_profile.display_name, "Jas");
+    assert_eq!(outcome_get_profile.first_name, "Jaswinder");
+    assert_eq!(outcome_get_profile.last_name, "Singh");
+
+    println!("outcome_get_profile: {:#?}", outcome_get_profile);
+    Ok(())
+}
+
+#[tokio::test]
+async fn test_get_profiles() -> Result<(), Box<dyn std::error::Error>> {
+    let (sandbox, contract, user_account1) = init().await?;
+
+    // Create a second user account
+    let user_account2 = sandbox.dev_create_account().await?;
+
+    // Add profiles for both users
+    for user in [&user_account1, &user_account2] {
+        let _ = user
+            .call(contract.id(), "add_profile")
+            .args_json(json!({"post_profile": {
+                "username": format!("user_{}", user.id()),
+                "display_name": "Test User",
+                "first_name": "Test",
+                "last_name": "User",
+                "extra": "extra"
+            }}))
+            .transact()
+            .await?;
+    }
+
+    // Test get_profiles function
+    let outcome_get_profiles: Vec<ProfileResponse> = user_account1
+        .view(contract.id(), "get_profiles")
+        .args_json(json!({
+            "account_ids": [user_account1.id(), user_account2.id()]
+        }))
+        .await?
+        .json()?;
+
+    println!("outcome_get_profiles: {:#?}", outcome_get_profiles);
+    assert_eq!(outcome_get_profiles.len(), 2);
+    assert_eq!(
+        outcome_get_profiles[0].username,
+        format!("user_{}", user_account1.id().to_string())
+    );
+    assert_eq!(
+        outcome_get_profiles[1].username,
+        format!("user_{}", user_account2.id().to_string())
+    );
     Ok(())
 }
