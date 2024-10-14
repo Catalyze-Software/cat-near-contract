@@ -18,6 +18,7 @@ pub struct Profile {
     pub banner_image: String,  //url to the IPFS image
     pub website: String,
     pub application_role: ApplicationRole,
+    pub joined_groups: Vec<u32>,
     pub skills: Vec<u32>,
     pub interests: Vec<u32>,
     pub causes: Vec<u32>,
@@ -74,6 +75,7 @@ impl Profile {
                 .banner_image
                 .unwrap_or_else(|| self.banner_image.clone()),
             application_role: self.application_role.clone(),
+            joined_groups: self.joined_groups.clone(),
             skills: profile.skills.unwrap_or_else(|| self.skills.clone()),
             interests: profile.interests.unwrap_or_else(|| self.interests.clone()),
             causes: profile.causes.unwrap_or_else(|| self.causes.clone()),
@@ -101,6 +103,7 @@ impl From<PostProfile> for Profile {
             country: "".to_string(),
             profile_image: "".to_string(),
             banner_image: "".to_string(),
+            joined_groups: vec![],
             skills: vec![],
             interests: vec![],
             causes: vec![],
@@ -122,7 +125,7 @@ pub struct PostProfile {
     pub display_name: String,
     pub first_name: String,
     pub last_name: String,
-    pub extra: String,
+    pub extra: String, //make it optional or remove it
 }
 
 #[derive(Clone, Debug)]
@@ -153,36 +156,6 @@ pub struct ProfileResponse {
 
 impl ProfileResponse {
     pub fn new(account_id: AccountId, profile: Profile) -> Self {
-        Self {
-            account_id,
-            username: profile.username,
-            display_name: profile.display_name,
-            about: profile.about,
-            city: profile.city,
-            country: profile.country,
-            website: profile.website,
-            skills: profile.skills,
-            interests: profile.interests,
-            causes: profile.causes,
-            email: profile.email,
-            application_role: profile.application_role,
-            first_name: profile.first_name,
-            last_name: profile.last_name,
-            date_of_birth: profile.date_of_birth,
-            state_or_province: profile.state_or_province,
-            profile_image: profile.profile_image,
-            banner_image: profile.banner_image,
-            extra: profile.extra,
-            updated_on: profile.updated_on,
-            created_on: profile.created_on,
-        }
-    }
-}
-
-pub type ProfileEntry = (AccountId, Profile);
-
-impl From<ProfileEntry> for ProfileResponse {
-    fn from((account_id, profile): ProfileEntry) -> Self {
         Self {
             account_id,
             username: profile.username,

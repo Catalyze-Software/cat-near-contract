@@ -1,11 +1,9 @@
-use near_sdk::{env, AccountId};
-use serde::{Deserialize, Serialize};
-
-use crate::models::members::Members;
-
 use super::application_role::ApplicationRole;
+use crate::models::members::Members;
+use near_sdk::{env, near, AccountId};
 
-#[derive(Clone, Serialize, Deserialize, Debug)]
+#[derive(Clone, Debug)]
+#[near(serializers = ["json", "borsh"])]
 pub struct GroupWithMembers {
     pub name: String,
     pub description: String,
@@ -40,6 +38,18 @@ impl Default for GroupWithMembers {
     }
 }
 
+#[derive(Clone)]
+#[near(serializers = ["json"])]
+pub struct PostGroup {
+    pub name: String,
+    pub description: String,
+    pub website: String,
+    pub matrix_space_id: String,
+    pub image: String,
+    pub banner_image: String,
+    pub tags: Vec<u32>,
+}
+
 impl From<PostGroup> for GroupWithMembers {
     fn from(group: PostGroup) -> Self {
         Self {
@@ -59,15 +69,37 @@ impl From<PostGroup> for GroupWithMembers {
     }
 }
 
+#[derive(Clone, Debug)]
+#[near(serializers = ["json"])]
+pub struct UpdateGroup {
+    pub name: Option<String>,
+    pub description: Option<String>,
+    pub website: Option<String>,
+    pub image: Option<String>,
+    pub banner_image: Option<String>,
+    pub tags: Option<Vec<u32>>,
+}
+
 impl GroupWithMembers {
-    pub fn update(&mut self, group: UpdateGroup) -> Self {
-        self.name = group.name;
-        self.description = group.description;
-        self.website = group.website;
-        self.image = group.image;
-        self.banner_image = group.banner_image;
-        self.updated_on = env::block_timestamp();
-        self.clone()
+    pub fn update(&self, group: UpdateGroup) -> Self {
+        Self {
+            name: group.name.unwrap_or_else(|| self.name.clone()),
+            description: group
+                .description
+                .unwrap_or_else(|| self.description.clone()),
+            website: group.website.unwrap_or_else(|| self.website.clone()),
+            image: group.image.unwrap_or_else(|| self.image.clone()),
+            banner_image: group
+                .banner_image
+                .unwrap_or_else(|| self.banner_image.clone()),
+            owner: self.owner.clone(),
+            created_by: self.created_by.clone(),
+            members: self.members.clone(),
+            is_deleted: self.is_deleted,
+            updated_on: env::block_timestamp(),
+            created_on: self.created_on,
+            matrix_space_id: self.matrix_space_id.clone(),
+        }
     }
 
     pub fn set_owner(&mut self, owner: AccountId) -> Self {
@@ -99,32 +131,10 @@ impl GroupWithMembers {
     }
 }
 
-pub type GroupEntry = (u64, GroupWithMembers);
-
-#[derive(Clone, Deserialize)]
-pub struct PostGroup {
-    pub name: String,
-    pub description: String,
-    pub website: String,
-    pub matrix_space_id: String,
-    pub image: String,
-    pub banner_image: String,
-    pub tags: Vec<u32>,
-}
-
-#[derive(Clone, Deserialize, Debug)]
-pub struct UpdateGroup {
-    pub name: String,
-    pub description: String,
-    pub website: String,
-    pub image: String,
-    pub banner_image: String,
-    pub tags: Vec<u32>,
-}
-
-#[derive(Clone, Serialize, Deserialize, Debug)]
+#[derive(Clone, Debug)]
+#[near(serializers = ["json"])]
 pub struct GroupResponse {
-    pub id: u64,
+    pub id: u32,
     pub name: String,
     pub description: String,
     pub website: String,
@@ -140,7 +150,7 @@ pub struct GroupResponse {
 }
 
 impl GroupResponse {
-    pub fn new(id: u64, group: GroupWithMembers) -> Self {
+    pub fn new(id: u32, group: GroupWithMembers) -> Self {
         Self {
             id,
             name: group.name,

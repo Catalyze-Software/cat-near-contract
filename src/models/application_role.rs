@@ -1,21 +1,8 @@
 use core::fmt;
-use near_sdk::borsh::{BorshDeserialize, BorshSerialize};
-use serde::{Deserialize, Serialize};
+use near_sdk::near;
 
-#[derive(
-    Debug,
-    Clone,
-    Serialize,
-    Deserialize,
-    PartialEq,
-    Eq,
-    PartialOrd,
-    Ord,
-    Default,
-    BorshDeserialize,
-    BorshSerialize,
-)]
-#[borsh(crate = "near_sdk::borsh")]
+#[near(serializers=["json", "borsh"])]
+#[derive(Default, Clone, Debug)]
 pub enum ApplicationRole {
     Owner,
     #[default]
