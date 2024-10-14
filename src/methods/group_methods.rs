@@ -1,26 +1,26 @@
-use crate::error::GroupError;
 use crate::models::{
     application_role::ApplicationRole,
+    contract::{Contract, ContractExt},
+    error::Error,
     groups::{GroupResponse, PostGroup, UpdateGroup},
 };
-use crate::{Contract, ContractExt};
+
 use near_sdk::{env, near, AccountId};
 use std::collections::HashMap;
 
 #[near]
 impl Contract {
     #[handle_result]
-    pub fn add_group(&mut self, post_group: PostGroup) -> Result<u32, GroupError> {
+    pub fn add_group(&mut self, post_group: PostGroup) -> Result<u32, Error> {
         let account_id = env::predecessor_account_id();
 
         // Update Profile
         let profile = self
             .profiles
             .get_mut(&account_id)
-            .ok_or(GroupError::ProfileNotFound)?;
+            .ok_or(Error::ProfileNotFound)?;
 
         let group_id = self.group_id_counter;
-
         profile.joined_groups.push(group_id);
 
         self.groups.insert(group_id, post_group.into());
@@ -70,28 +70,25 @@ impl Contract {
 
     //Don't return Okay for Errors.
     #[handle_result]
-    pub fn join_group(&mut self, group_id: u32) -> Result<(), GroupError> {
+    pub fn join_group(&mut self, group_id: u32) -> Result<(), Error> {
         let account_id = env::predecessor_account_id();
 
         // Update Profile
         let profile = self
             .profiles
             .get_mut(&account_id)
-            .ok_or(GroupError::ProfileNotFound)?;
+            .ok_or(Error::ProfileNotFound)?;
 
         if profile.joined_groups.contains(&group_id) {
-            return Err(GroupError::AlreadyMember);
+            return Err(Error::AlreadyMember);
         }
         profile.joined_groups.push(group_id);
 
         // Update Group
-        let group = self
-            .groups
-            .get_mut(&group_id)
-            .ok_or(GroupError::GroupNotFound)?;
+        let group = self.groups.get_mut(&group_id).ok_or(Error::GroupNotFound)?;
 
         if group.members.members.contains_key(&account_id) {
-            return Err(GroupError::UserAlreadyInGroup);
+            return Err(Error::UserAlreadyInGroup);
         }
         group
             .members
@@ -102,7 +99,7 @@ impl Contract {
     }
 
     #[handle_result]
-    pub fn leave_group(&mut self, group_id: u32) -> Result<(), GroupError> {
+    pub fn leave_group(&mut self, group_id: u32) -> Result<(), Error> {
         let account_id = env::predecessor_account_id();
 
         // Update Profile
@@ -110,22 +107,19 @@ impl Contract {
         let profile = self
             .profiles
             .get_mut(&account_id)
-            .ok_or(GroupError::ProfileNotFound)?;
+            .ok_or(Error::ProfileNotFound)?;
 
         if !profile.joined_groups.contains(&group_id) {
-            return Err(GroupError::NotMember);
+            return Err(Error::NotMember);
         }
 
         profile.joined_groups.retain(|&x| x != group_id);
 
         // Update Group
-        let group = self
-            .groups
-            .get_mut(&group_id)
-            .ok_or(GroupError::GroupNotFound)?;
+        let group = self.groups.get_mut(&group_id).ok_or(Error::GroupNotFound)?;
 
         if !group.members.members.contains_key(&account_id) {
-            return Err(GroupError::NotMember);
+            return Err(Error::NotMember);
         }
         group.members.members.remove(&account_id);
 

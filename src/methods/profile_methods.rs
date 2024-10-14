@@ -1,5 +1,7 @@
-use crate::models::profile::{PostProfile, ProfileResponse, UpdateProfile};
-use crate::{Contract, ContractExt};
+use crate::models::{
+    contract::{Contract, ContractExt},
+    profile::{PostProfile, ProfileResponse, UpdateProfile},
+};
 use near_sdk::{env, near, AccountId};
 
 //Nice to have
