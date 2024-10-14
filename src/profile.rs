@@ -1,7 +1,9 @@
-//need gas checks?
 use crate::models::profile::{PostProfile, ProfileResponse, UpdateProfile};
 use crate::{Contract, ContractExt};
 use near_sdk::{env, near, AccountId};
+
+//Nice to have
+//add validation to PostProfile and UpdateProfile
 
 #[near]
 impl Contract {
@@ -24,17 +26,14 @@ impl Contract {
 
     pub fn get_profile(&self, account_id: AccountId) -> Option<ProfileResponse> {
         let profile = self.profiles.get(&account_id)?;
-        Some(ProfileResponse::from((account_id, profile.clone())))
+        Some(ProfileResponse::new(account_id, profile.clone()))
     }
 
     pub fn get_profiles(&self, account_ids: Vec<AccountId>) -> Vec<ProfileResponse> {
         let mut profiles: Vec<ProfileResponse> = vec![];
         for account_id in &account_ids {
             if let Some(_profile) = self.profiles.get(account_id) {
-                profiles.push(ProfileResponse::from((
-                    account_id.clone(),
-                    _profile.clone(),
-                )));
+                profiles.push(ProfileResponse::new(account_id.clone(), _profile.clone()));
             }
         }
         profiles
