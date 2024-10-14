@@ -1,6 +1,7 @@
 use crate::models::{
     contract::{Contract, ContractExt},
     profile::{PostProfile, ProfileResponse, UpdateProfile},
+    reward,
 };
 use near_sdk::{env, near, AccountId};
 
@@ -12,6 +13,7 @@ impl Contract {
     pub fn add_profile(&mut self, post_profile: PostProfile) {
         let account_id = env::signer_account_id();
         self.profiles.insert(account_id, post_profile.into());
+
         env::log_str("Profile added");
     }
 
@@ -21,6 +23,13 @@ impl Contract {
 
         //instead of cloning the while current profile here, only clone internally what is needed.
         let updated_profile = current_profile.update(update_profile);
+
+        if updated_profile.is_filled() {
+            if let Some(reward) = self.rewards.get_mut(&account_id) {
+                reward.profile_complete();
+            }
+        }
+
         self.profiles.insert(account_id, updated_profile);
         env::log_str("Profile updated");
         Some(())

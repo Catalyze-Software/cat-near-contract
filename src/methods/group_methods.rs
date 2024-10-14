@@ -93,7 +93,11 @@ impl Contract {
         group
             .members
             .members
-            .insert(account_id, ApplicationRole::Member);
+            .insert(account_id.clone(), ApplicationRole::Member);
+
+        if let Some(reward) = self.rewards.get_mut(&account_id) {
+            reward.group_join(group_id);
+        }
 
         Ok(())
     }
