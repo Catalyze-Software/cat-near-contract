@@ -23,6 +23,18 @@ async fn init() -> Result<(Worker<Sandbox>, Contract, Account), Box<dyn std::err
 async fn test_add_group() -> Result<(), Box<dyn std::error::Error>> {
     let (_, contract, user) = init().await?;
 
+    let _ = user
+        .call(contract.id(), "add_profile")
+        .args_json(json!({"post_profile": {
+            "username": "jassification",
+            "display_name": "Jas",
+            "first_name": "Jaswinder",
+            "last_name": "Singh",
+            "extra": "Test"
+        }}))
+        .transact()
+        .await?;
+
     let result = user
         .call(contract.id(), "add_group")
         .args_json(json!({
@@ -49,6 +61,18 @@ async fn test_add_group() -> Result<(), Box<dyn std::error::Error>> {
 #[tokio::test]
 async fn test_edit_group() -> Result<(), Box<dyn std::error::Error>> {
     let (_, contract, user) = init().await?;
+
+    let _ = user
+        .call(contract.id(), "add_profile")
+        .args_json(json!({"post_profile": {
+            "username": "jassification",
+            "display_name": "Jas",
+            "first_name": "Jaswinder",
+            "last_name": "Singh",
+            "extra": "Test"
+        }}))
+        .transact()
+        .await?;
 
     // First, add a group
     let group_id = user
@@ -102,6 +126,18 @@ async fn test_edit_group() -> Result<(), Box<dyn std::error::Error>> {
 async fn test_get_group_by_name() -> Result<(), Box<dyn std::error::Error>> {
     let (_, contract, user) = init().await?;
 
+    let _ = user
+        .call(contract.id(), "add_profile")
+        .args_json(json!({"post_profile": {
+            "username": "jassification",
+            "display_name": "Jas",
+            "first_name": "Jaswinder",
+            "last_name": "Singh",
+            "extra": "Test"
+        }}))
+        .transact()
+        .await?;
+
     // Add a group
     let _ = user
         .call(contract.id(), "add_group")
@@ -138,6 +174,18 @@ async fn test_get_group_by_name() -> Result<(), Box<dyn std::error::Error>> {
 #[tokio::test]
 async fn test_get_groups() -> Result<(), Box<dyn std::error::Error>> {
     let (_, contract, user) = init().await?;
+
+    let _ = user
+        .call(contract.id(), "add_profile")
+        .args_json(json!({"post_profile": {
+            "username": "jassification",
+            "display_name": "Jas",
+            "first_name": "Jaswinder",
+            "last_name": "Singh",
+            "extra": "Test"
+        }}))
+        .transact()
+        .await?;
 
     // Add multiple groups
     for i in 0..4 {
@@ -176,6 +224,18 @@ async fn test_get_groups() -> Result<(), Box<dyn std::error::Error>> {
 #[tokio::test]
 async fn test_get_groups_by_id() -> Result<(), Box<dyn std::error::Error>> {
     let (_, contract, user) = init().await?;
+
+    let _ = user
+        .call(contract.id(), "add_profile")
+        .args_json(json!({"post_profile": {
+            "username": "jassification",
+            "display_name": "Jas",
+            "first_name": "Jaswinder",
+            "last_name": "Singh",
+            "extra": "Test"
+        }}))
+        .transact()
+        .await?;
 
     // Add multiple groups and collect their IDs
     let mut group_ids = Vec::new();
