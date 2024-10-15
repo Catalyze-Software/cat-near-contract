@@ -3,6 +3,7 @@ use crate::{
     models::{
         application_role::ApplicationRole,
         groups::{GroupResponse, PostGroup, UpdateGroup},
+        rewards::Rewards,
     },
     Contract, ContractExt,
 };
@@ -100,9 +101,16 @@ impl Contract {
             .members
             .insert(account_id.clone(), ApplicationRole::Member);
 
-        if let Some(reward) = self.rewards.get_mut(&account_id) {
-            reward.group_join(group_id);
-        }
+        match self.rewards.get_mut(&account_id) {
+            Some(reward) => {
+                reward.group_join(group_id);
+            }
+            None => {
+                let mut new_reward = Rewards::default();
+                new_reward.group_join(group_id);
+                self.rewards.insert(account_id.clone(), new_reward);
+            }
+        };
 
         Ok(())
     }

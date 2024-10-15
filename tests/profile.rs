@@ -1,4 +1,4 @@
-use cat_near_contract::models::{profile::ProfileResponse, rewards::Rewards};
+use cat_near_contract::models::profile::ProfileResponse;
 use near_workspaces::{network::Sandbox, Account, Contract, Worker};
 use serde_json::json;
 
@@ -76,15 +76,8 @@ async fn test_edit_profile() -> Result<(), Box<dyn std::error::Error>> {
         .transact()
         .await?;
 
-    let outcome_get_rewards: Rewards = user_account
-        .view(contract.id(), "get_rewards")
-        .args_json(json!({}))
-        .await?
-        .json()?;
-
     assert!(outcome_update_profile.is_success());
-    // assert_eq!(outcome_rewards.points, 100);
-    // println!("outcome_rewards: {:#?}", outcome_rewards);
+
     Ok(())
 }
 

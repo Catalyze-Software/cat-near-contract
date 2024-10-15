@@ -103,6 +103,35 @@ impl Profile {
 
         is_string_content_filled && is_images_filled && is_interests_filled
     }
+
+    pub fn get_profile_complete_percentage(&self) -> u32 {
+        let mut percentage = 20;
+        if !self.first_name.is_empty() {
+            percentage += 10;
+        }
+        if !self.last_name.is_empty() {
+            percentage += 10;
+        }
+        if !self.email.is_empty() {
+            percentage += 10;
+        }
+        if !self.country.is_empty() {
+            percentage += 10;
+        }
+        if !self.about.is_empty() {
+            percentage += 10;
+        }
+        if !self.profile_image.is_empty() {
+            percentage += 10;
+        }
+        if !self.banner_image.is_empty() {
+            percentage += 10;
+        }
+        if self.interests.len() >= 3 {
+            percentage += 10;
+        }
+        percentage
+    }
 }
 
 impl From<PostProfile> for Profile {

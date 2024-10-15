@@ -1,4 +1,5 @@
 use crate::models::profile::{PostProfile, ProfileResponse, UpdateProfile};
+use crate::models::rewards::Rewards;
 use crate::{Contract, ContractExt};
 use near_sdk::{env, near, AccountId};
 
@@ -21,10 +22,17 @@ impl Contract {
         let updated_profile = current_profile.update(update_profile);
 
         if updated_profile.is_filled() {
-            if let Some(reward) = self.rewards.get_mut(&account_id) {
-                reward.profile_complete();
-            }
-        }
+            match self.rewards.get_mut(&account_id) {
+                Some(reward) => {
+                    reward.profile_complete();
+                }
+                None => {
+                    let mut new_reward = Rewards::default();
+                    new_reward.profile_complete();
+                    self.rewards.insert(account_id.clone(), new_reward);
+                }
+            };
+        };
 
         self.profiles.insert(account_id, updated_profile);
         env::log_str("Profile updated");
