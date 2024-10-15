@@ -76,7 +76,7 @@ async fn test_edit_profile() -> Result<(), Box<dyn std::error::Error>> {
         .transact()
         .await?;
 
-    let outcome_get_profile: ProfileResponse = user_account
+    let outcome_get_rewards: Rewards = user_account
         .view(contract.id(), "get_rewards")
         .args_json(json!({}))
         .await?
