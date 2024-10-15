@@ -19,6 +19,13 @@ impl Contract {
 
         //instead of cloning the while current profile here, only clone internally what is needed.
         let updated_profile = current_profile.update(update_profile);
+
+        if updated_profile.is_filled() {
+            if let Some(reward) = self.rewards.get_mut(&account_id) {
+                reward.profile_complete();
+            }
+        }
+
         self.profiles.insert(account_id, updated_profile);
         env::log_str("Profile updated");
         Some(())
