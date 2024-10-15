@@ -3,9 +3,11 @@ pub mod error;
 pub mod groups;
 pub mod models;
 pub mod profile;
+pub mod rewards;
 
 use crate::models::groups::GroupWithMembers;
 use crate::models::profile::Profile;
+use models::rewards::Rewards;
 use near_sdk::{near, store::IterableMap, AccountId};
 
 // Define the contract structure
@@ -13,6 +15,7 @@ use near_sdk::{near, store::IterableMap, AccountId};
 pub struct Contract {
     pub profiles: IterableMap<AccountId, Profile>,
     pub groups: IterableMap<u32, GroupWithMembers>,
+    pub rewards: IterableMap<AccountId, Rewards>,
     pub group_id_counter: u32,
 }
 
@@ -22,6 +25,7 @@ impl Default for Contract {
         Self {
             profiles: IterableMap::new(b"p"),
             groups: IterableMap::new(b"g"),
+            rewards: IterableMap::new(b"r"),
             group_id_counter: 0,
         }
     }
@@ -31,10 +35,6 @@ impl Default for Contract {
 impl Contract {
     #[init]
     pub fn new() -> Self {
-        Self {
-            profiles: IterableMap::new(b"p"),
-            groups: IterableMap::new(b"g"),
-            group_id_counter: 0,
-        }
+        Self::default()
     }
 }

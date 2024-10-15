@@ -1,4 +1,5 @@
 use crate::models::profile::{PostProfile, ProfileResponse, UpdateProfile};
+use crate::models::rewards::Rewards;
 use crate::{Contract, ContractExt};
 use near_sdk::{env, near, AccountId};
 
@@ -19,6 +20,20 @@ impl Contract {
 
         //instead of cloning the while current profile here, only clone internally what is needed.
         let updated_profile = current_profile.update(update_profile);
+
+        if updated_profile.is_filled() {
+            match self.rewards.get_mut(&account_id) {
+                Some(reward) => {
+                    reward.profile_complete();
+                }
+                None => {
+                    let mut new_reward = Rewards::default();
+                    new_reward.profile_complete();
+                    self.rewards.insert(account_id.clone(), new_reward);
+                }
+            };
+        };
+
         self.profiles.insert(account_id, updated_profile);
         env::log_str("Profile updated");
         Some(())

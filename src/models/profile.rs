@@ -85,6 +85,53 @@ impl Profile {
             created_on: self.created_on,
         }
     }
+
+    pub fn is_filled(&self) -> bool {
+        let is_string_content_filled = vec![
+            &self.first_name,
+            &self.last_name,
+            &self.email,
+            &self.country,
+            &self.about,
+        ]
+        .into_iter()
+        .all(|s| !s.is_empty());
+
+        let is_images_filled = !self.profile_image.is_empty() && !self.banner_image.is_empty();
+
+        let is_interests_filled = self.interests.len() >= 3;
+
+        is_string_content_filled && is_images_filled && is_interests_filled
+    }
+
+    pub fn get_profile_complete_percentage(&self) -> u32 {
+        let mut percentage = 20;
+        if !self.first_name.is_empty() {
+            percentage += 10;
+        }
+        if !self.last_name.is_empty() {
+            percentage += 10;
+        }
+        if !self.email.is_empty() {
+            percentage += 10;
+        }
+        if !self.country.is_empty() {
+            percentage += 10;
+        }
+        if !self.about.is_empty() {
+            percentage += 10;
+        }
+        if !self.profile_image.is_empty() {
+            percentage += 10;
+        }
+        if !self.banner_image.is_empty() {
+            percentage += 10;
+        }
+        if self.interests.len() >= 3 {
+            percentage += 10;
+        }
+        percentage
+    }
 }
 
 impl From<PostProfile> for Profile {

@@ -77,6 +77,7 @@ async fn test_edit_profile() -> Result<(), Box<dyn std::error::Error>> {
         .await?;
 
     assert!(outcome_update_profile.is_success());
+
     Ok(())
 }
 
@@ -147,11 +148,11 @@ async fn test_get_profiles() -> Result<(), Box<dyn std::error::Error>> {
     assert_eq!(outcome_get_profiles.len(), 2);
     assert_eq!(
         outcome_get_profiles[0].username,
-        format!("user_{}", user_account1.id().to_string())
+        format!("user_{}", user_account1.id())
     );
     assert_eq!(
         outcome_get_profiles[1].username,
-        format!("user_{}", user_account2.id().to_string())
+        format!("user_{}", user_account2.id())
     );
     Ok(())
 }
