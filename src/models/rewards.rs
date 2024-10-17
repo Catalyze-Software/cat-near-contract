@@ -28,19 +28,21 @@ impl Default for Rewards {
 }
 
 impl Rewards {
-    pub fn profile_complete(&mut self) {
+    pub fn profile_complete(&mut self) -> Self {
         if !self.actions.profile_complete {
             self.actions.profile_complete = true;
             self.points += 100;
             self.updated_on = env::block_timestamp();
         }
+        self.clone()
     }
 
-    pub fn group_join(&mut self, group_id: u32) {
+    pub fn group_join(&mut self, group_id: u32) -> Self {
         if !self.actions.group_join_action_history.contains(&group_id) {
             self.points += 10;
             self.actions.group_join_action_history.push(group_id);
             self.updated_on = env::block_timestamp();
         }
+        self.clone()
     }
 }

@@ -59,20 +59,17 @@ async fn test_check_profile_complete_reward() -> Result<(), Box<dyn std::error::
     let updated_profile = account
         .call(contract.id(), "edit_profile")
         .args_json(json!({"update_profile": {
-            "display_name": "Jassi",
-            "first_name": "Jas",
-            "last_name": "Singh",
-            "about": "About",
-            "date_of_birth": 123456,
-            "extra": "extra",
-            "city":"Mumbai",
-            "state_or_province":"Maharashtra",
-            "country":"India",
-            "profile_image":"profile_image",
-            "skills":[1,2,3],
+            "username": "complete",
+            "display_name": "complete",
+            "first_name": "complete",
+            "last_name": "complete",
+            "extra": "complete",
+            "email": "complete@complete.com",
+            "country": "Zimbabwe",
+            "about": "About completes",
+            "profile_image": "https://example.com/image.jpg",
+            "banner_image": "https://example.com/banner.jpg",
             "interests":[1,2,3],
-            "causes":[1,2,3],
-            "website":"website"
         }}))
         .transact()
         .await
@@ -83,7 +80,7 @@ async fn test_check_profile_complete_reward() -> Result<(), Box<dyn std::error::
     println!("updated_profile: {:#?}", updated_profile);
     match updated_profile {
         ResponseResult::Ok(profile) => {
-            assert_eq!(profile.username, "Jassi");
+            assert_eq!(profile.display_name, "complete");
             let updated_profile_reward_status: Rewards = account
                 .view(contract.id(), "get_rewards")
                 .args_json(json!({ "account_id": account.id()}))

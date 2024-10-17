@@ -118,8 +118,9 @@ impl GroupWithMembers {
         self.members.members.keys().cloned().collect()
     }
 
-    pub fn remove_member(&mut self, member: AccountId) {
+    pub fn remove_member(&mut self, member: AccountId) -> Self {
         self.members.members.remove(&member);
+        self.clone()
     }
 
     pub fn get_member_with_role(&self, member: &AccountId) -> Option<(AccountId, ApplicationRole)> {
@@ -138,8 +139,9 @@ impl GroupWithMembers {
             .collect()
     }
 
-    pub fn add_member(&mut self, member: AccountId) {
+    pub fn add_member(&mut self, member: AccountId) -> Self {
         self.members.members.insert(member, ApplicationRole::Member);
+        self.clone()
     }
 
     pub fn is_member(&self, member: &AccountId) -> bool {

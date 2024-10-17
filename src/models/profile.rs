@@ -49,12 +49,14 @@ pub struct UpdateProfile {
 }
 
 impl Profile {
-    pub fn add_group(&mut self, group_id: u32) {
+    pub fn add_group(&mut self, group_id: u32) -> Self {
         self.joined_groups.push(group_id);
+        self.clone()
     }
 
-    pub fn remove_group(&mut self, group_id: u32) {
+    pub fn remove_group(&mut self, group_id: u32) -> Self {
         self.joined_groups.retain(|&x| x != group_id);
+        self.clone()
     }
 
     pub fn is_group_member(&self, group_id: &u32) -> bool {

@@ -19,6 +19,8 @@ impl Contract {
             Some(_) => ResponseResult::Err(GenericError::ProfileAlreadyExists),
             None => {
                 env::log_str("Profile added");
+                self.rewards.insert(account_id.clone(), Rewards::default());
+
                 ResponseResult::Ok(ProfileResponse::new(
                     account_id.clone(),
                     self.profiles.get(&account_id).unwrap().clone(),
@@ -26,34 +28,6 @@ impl Contract {
             }
         }
     }
-
-    // pub fn edit_profile(
-    //     &mut self,
-    //     update_profile: UpdateProfile,
-    // ) -> ResponseResult<ProfileResponse> {
-    //     let account_id = env::signer_account_id();
-    //     match self.profiles.get_mut(&account_id) {
-    //         None => ResponseResult::Err(GenericError::ProfileNotFound),
-    //         Some(profile) => {
-    //             profile.update(update_profile);
-
-    //             if profile.is_filled() {
-    //                 match self.rewards.get_mut(&account_id) {
-    //                     Some(reward) => {
-    //                         reward.profile_complete();
-    //                     }
-    //                     None => {
-    //                         let mut new_reward = Rewards::default();
-    //                         new_reward.profile_complete();
-    //                         self.rewards.insert(account_id.clone(), new_reward);
-    //                     }
-    //                 };
-    //             };
-    //             env::log_str("Profile updated");
-    //             ResponseResult::Ok(ProfileResponse::new(account_id, profile.clone()))
-    //         }
-    //     }
-    // }
 
     pub fn edit_profile(
         &mut self,
@@ -71,14 +45,12 @@ impl Contract {
                 if updated_profile.is_filled() {
                     match self.rewards.get(&account_id) {
                         Some(reward) => {
-                            let mut x = reward.clone();
-                            x.profile_complete();
-                            self.rewards.insert(account_id.clone(), x);
+                            self.rewards
+                                .insert(account_id.clone(), reward.clone().profile_complete());
                         }
                         None => {
-                            let mut new_reward = Rewards::default();
-                            new_reward.profile_complete();
-                            self.rewards.insert(account_id.clone(), new_reward);
+                            self.rewards
+                                .insert(account_id.clone(), Rewards::default().profile_complete());
                         }
                     };
                 };
