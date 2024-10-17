@@ -63,13 +63,12 @@ impl Contract {
         match self.profiles.get(&account_id) {
             None => ResponseResult::Err(GenericError::ProfileNotFound),
             Some(profile) => {
-                let mutable_profile = profile.clone();
-                mutable_profile.update(update_profile);
+                let updated_profile = profile.update(update_profile);
 
                 self.profiles
-                    .insert(account_id.clone(), mutable_profile.clone());
+                    .insert(account_id.clone(), updated_profile.clone());
 
-                if mutable_profile.is_filled() {
+                if updated_profile.is_filled() {
                     match self.rewards.get(&account_id) {
                         Some(reward) => {
                             let mut x = reward.clone();
@@ -85,7 +84,7 @@ impl Contract {
                 };
 
                 env::log_str("Profile updated");
-                ResponseResult::Ok(ProfileResponse::new(account_id, mutable_profile.clone()))
+                ResponseResult::Ok(ProfileResponse::new(account_id, updated_profile.clone()))
             }
         }
     }
