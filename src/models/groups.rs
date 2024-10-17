@@ -122,11 +122,27 @@ impl GroupWithMembers {
         self.members.members.remove(&member);
     }
 
+    pub fn get_member_with_role(&self, member: &AccountId) -> Option<(AccountId, ApplicationRole)> {
+        self.members
+            .members
+            .iter()
+            .find(|(k, _)| k == &member)
+            .map(|(k, v)| (k.clone(), v.clone()))
+    }
+
+    pub fn get_members_with_roles(&self) -> Vec<(AccountId, ApplicationRole)> {
+        self.members
+            .members
+            .iter()
+            .map(|(k, v)| (k.clone(), v.clone()))
+            .collect()
+    }
+
     pub fn add_member(&mut self, member: AccountId) {
         self.members.members.insert(member, ApplicationRole::Member);
     }
 
-    pub fn is_member(&self, member: AccountId) -> bool {
+    pub fn is_member(&self, member: &AccountId) -> bool {
         self.members.is_member(member)
     }
 }

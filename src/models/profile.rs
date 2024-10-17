@@ -49,6 +49,21 @@ pub struct UpdateProfile {
 }
 
 impl Profile {
+    pub fn add_group(&mut self, group_id: u32) {
+        self.joined_groups.push(group_id);
+    }
+
+    pub fn remove_group(&mut self, group_id: u32) {
+        self.joined_groups.retain(|&x| x != group_id);
+    }
+
+    pub fn is_group_member(&self, group_id: &u32) -> bool {
+        self.joined_groups.contains(group_id)
+    }
+
+    pub fn get_group_ids(&self) -> Vec<u32> {
+        self.joined_groups.clone()
+    }
     //Check for None sent in UpdateProfile - Done
     pub fn update(&self, profile: UpdateProfile) -> Self {
         Self {
