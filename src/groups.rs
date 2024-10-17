@@ -1,9 +1,13 @@
-use crate::error::GroupError;
-use crate::models::{
-    application_role::ApplicationRole,
-    groups::{GroupResponse, PostGroup, UpdateGroup},
+use crate::{
+    error::GroupError,
+    models::{
+        application_role::ApplicationRole,
+        groups::{GroupResponse, PostGroup, UpdateGroup},
+        rewards::Rewards,
+    },
+    Contract, ContractExt,
 };
-use crate::{Contract, ContractExt};
+
 use near_sdk::{env, near, AccountId};
 use std::collections::HashMap;
 
@@ -20,7 +24,6 @@ impl Contract {
             .ok_or(GroupError::ProfileNotFound)?;
 
         let group_id = self.group_id_counter;
-
         profile.joined_groups.push(group_id);
 
         self.groups.insert(group_id, post_group.into());
@@ -96,7 +99,18 @@ impl Contract {
         group
             .members
             .members
-            .insert(account_id, ApplicationRole::Member);
+            .insert(account_id.clone(), ApplicationRole::Member);
+
+        match self.rewards.get_mut(&account_id) {
+            Some(reward) => {
+                reward.group_join(group_id);
+            }
+            None => {
+                let mut new_reward = Rewards::default();
+                new_reward.group_join(group_id);
+                self.rewards.insert(account_id.clone(), new_reward);
+            }
+        };
 
         Ok(())
     }
