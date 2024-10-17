@@ -1,4 +1,7 @@
-use cat_near_contract::models::rewards::Rewards;
+use cat_near_contract::models::{
+    groups::GroupResponse, profile::ProfileResponse, response_result::ResponseResult,
+    rewards::Rewards,
+};
 use near_workspaces::{network::Sandbox, Account, Contract, Worker};
 use serde_json::json;
 
@@ -23,7 +26,7 @@ async fn test_check_profile_complete_reward() -> Result<(), Box<dyn std::error::
     let (_, contract, account) = init().await?;
 
     // create incomplete profile
-    let incomplete = account
+    let new_profile = account
         .call(contract.id(), "add_profile")
         .args_json(json!({"post_profile": {
             "username": "incomplete",
@@ -33,49 +36,70 @@ async fn test_check_profile_complete_reward() -> Result<(), Box<dyn std::error::
             "extra": "incomplete"
         }}))
         .transact()
-        .await?;
+        .await
+        .unwrap()
+        .json::<ResponseResult<ProfileResponse>>()
+        .unwrap();
 
-    let outcome_incomplete_profile_rewards: Rewards = account
-        .view(contract.id(), "get_rewards")
-        .args_json(json!({ "account_id": account.id()}))
-        .await?
-        .json()?;
+    match new_profile {
+        ResponseResult::Ok(profile) => {
+            assert_eq!(profile.username, "incomplete");
+            let new_profile_reward_status: Rewards = account
+                .view(contract.id(), "get_rewards")
+                .args_json(json!({ "account_id": account.id()}))
+                .await?
+                .json()?;
 
-    assert!(incomplete.is_success());
-    assert!(!outcome_incomplete_profile_rewards.actions.profile_complete);
-    assert!(outcome_incomplete_profile_rewards.points == 0);
+            assert!(!new_profile_reward_status.actions.profile_complete);
+            assert!(new_profile_reward_status.points == 0);
+        }
+        ResponseResult::Err(_) => panic!("Profile not created"),
+    }
 
-    let complete = account
+    let updated_profile = account
         .call(contract.id(), "edit_profile")
         .args_json(json!({"update_profile": {
-            "username": "complete",
-            "display_name": "complete",
-            "first_name": "complete",
-            "last_name": "complete",
-            "extra": "complete",
-            "email": "complete@complete.com",
-            "country": "Zimbabwe",
-            "about": "About completes",
-            "profile_image": "https://example.com/image.jpg",
-            "banner_image": "https://example.com/banner.jpg",
+            "display_name": "Jassi",
+            "first_name": "Jas",
+            "last_name": "Singh",
+            "about": "About",
+            "date_of_birth": 123456,
+            "extra": "extra",
+            "city":"Mumbai",
+            "state_or_province":"Maharashtra",
+            "country":"India",
+            "profile_image":"profile_image",
+            "skills":[1,2,3],
             "interests":[1,2,3],
+            "causes":[1,2,3],
+            "website":"website"
         }}))
         .transact()
-        .await?;
+        .await
+        .unwrap()
+        .json::<ResponseResult<ProfileResponse>>()
+        .unwrap();
 
-    let outcome_complete_profile_rewards: Rewards = account
-        .view(contract.id(), "get_rewards")
-        .args_json(json!({ "account_id": account.id()}))
-        .await?
-        .json()?;
+    println!("updated_profile: {:#?}", updated_profile);
+    match updated_profile {
+        ResponseResult::Ok(profile) => {
+            assert_eq!(profile.username, "Jassi");
+            let updated_profile_reward_status: Rewards = account
+                .view(contract.id(), "get_rewards")
+                .args_json(json!({ "account_id": account.id()}))
+                .await?
+                .json()?;
 
-    println!(
-        "outcome_complete_profile_rewards: {:#?}",
-        outcome_complete_profile_rewards
-    );
-    assert!(complete.is_success());
-    assert!(outcome_complete_profile_rewards.actions.profile_complete);
-    assert!(outcome_complete_profile_rewards.points == 100);
+            println!(
+                "outcome_complete_profile_rewards: {:#?}",
+                updated_profile_reward_status
+            );
+            assert!(updated_profile_reward_status.actions.profile_complete);
+            assert!(updated_profile_reward_status.points == 100);
+        }
+        ResponseResult::Err(_) => panic!("Profile not updated"),
+    }
+
     Ok(())
 }
 
@@ -115,7 +139,7 @@ async fn test_join_group_reward() -> Result<(), Box<dyn std::error::Error>> {
     assert!(group_member_profile.is_success());
 
     // create group
-    let group_id = group_owner_account
+    let group_one = group_owner_account
         .call(contract.id(), "add_group")
         .args_json(json!({
             "post_group": {
@@ -131,13 +155,36 @@ async fn test_join_group_reward() -> Result<(), Box<dyn std::error::Error>> {
         .transact()
         .await
         .unwrap()
-        .json::<u32>()
+        .json::<ResponseResult<GroupResponse>>()
         .unwrap();
 
-    assert_eq!(group_id, 0, "Group ID should be equal to 0");
+    match group_one {
+        ResponseResult::Ok(group) => {
+            assert_eq!(group.id, 0, "Group ID should be equal to 0");
+
+            let joined_group = group_member_account
+                .call(contract.id(), "join_group")
+                .args_json(json!({
+                    "group_id": group.id
+                }))
+                .transact()
+                .await?;
+
+            assert!(joined_group.is_success());
+
+            let member_rewards: Rewards = group_member_account
+                .view(contract.id(), "get_rewards")
+                .args_json(json!({ "account_id": group_member_account.id()}))
+                .await?
+                .json()?;
+
+            assert!(member_rewards.points == 10);
+        }
+        ResponseResult::Err(_) => panic!("Group 1 not created"),
+    }
 
     // create group
-    let group_2_id = group_owner_account
+    let group_two = group_owner_account
         .call(contract.id(), "add_group")
         .args_json(json!({
             "post_group": {
@@ -153,46 +200,33 @@ async fn test_join_group_reward() -> Result<(), Box<dyn std::error::Error>> {
         .transact()
         .await
         .unwrap()
-        .json::<u32>()
+        .json::<ResponseResult<GroupResponse>>()
         .unwrap();
 
-    assert_eq!(group_2_id, 1, "Group ID should be equal to 1");
+    match group_two {
+        ResponseResult::Ok(group) => {
+            assert_eq!(group.id, 1, "Group ID should be equal to 1");
+            let joined_group_2 = group_member_account
+                .call(contract.id(), "join_group")
+                .args_json(json!({
+                    "group_id": group.id
+                }))
+                .transact()
+                .await?;
 
-    let joined_group = group_member_account
-        .call(contract.id(), "join_group")
-        .args_json(json!({
-            "group_id": group_id
-        }))
-        .transact()
-        .await?;
+            assert!(joined_group_2.is_success());
 
-    assert!(joined_group.is_success());
+            let member_rewards: Rewards = group_member_account
+                .view(contract.id(), "get_rewards")
+                .args_json(json!({ "account_id": group_member_account.id()}))
+                .await?
+                .json()?;
 
-    let member_rewards: Rewards = group_member_account
-        .view(contract.id(), "get_rewards")
-        .args_json(json!({ "account_id": group_member_account.id()}))
-        .await?
-        .json()?;
+            println!("member_rewards: {:#?}", member_rewards);
+            assert!(member_rewards.points == 20);
+        }
+        ResponseResult::Err(_) => panic!("Group 2 not created"),
+    }
 
-    assert!(member_rewards.points == 10);
-
-    let joined_group_2 = group_member_account
-        .call(contract.id(), "join_group")
-        .args_json(json!({
-            "group_id": group_2_id
-        }))
-        .transact()
-        .await?;
-
-    assert!(joined_group_2.is_success());
-
-    let member_rewards: Rewards = group_member_account
-        .view(contract.id(), "get_rewards")
-        .args_json(json!({ "account_id": group_member_account.id()}))
-        .await?
-        .json()?;
-
-    println!("member_rewards: {:#?}", member_rewards);
-    assert!(member_rewards.points == 20);
     Ok(())
 }
