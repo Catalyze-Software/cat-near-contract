@@ -1,4 +1,4 @@
-use cat_near_contract::models::groups::GroupResponse;
+use cat_near_contract::models::{groups::GroupResponse, response_result::ResponseResult};
 use near_sdk::serde_json::json;
 use near_workspaces::{network::Sandbox, Account, Contract, Worker};
 
@@ -51,10 +51,15 @@ async fn test_add_group() -> Result<(), Box<dyn std::error::Error>> {
         .transact()
         .await
         .unwrap()
-        .json::<u32>()
+        .json::<ResponseResult<GroupResponse>>()
         .unwrap();
 
-    assert_eq!(result, 0, "Group ID should be equal to 0");
+    match result {
+        ResponseResult::Err(err) => panic!("Error: {:?}", err),
+        ResponseResult::Ok(group) => {
+            assert_eq!(group.id, 0, "Group ID should be equal to 0");
+        }
+    }
     Ok(())
 }
 
@@ -75,7 +80,7 @@ async fn test_edit_group() -> Result<(), Box<dyn std::error::Error>> {
         .await?;
 
     // First, add a group
-    let group_id = user
+    let group = user
         .call(contract.id(), "add_group")
         .args_json(json!({
             "post_group": {
@@ -91,34 +96,44 @@ async fn test_edit_group() -> Result<(), Box<dyn std::error::Error>> {
         .transact()
         .await
         .unwrap()
-        .json::<u32>()
+        .json::<ResponseResult<GroupResponse>>()
         .unwrap();
 
-    // Now, edit the group
-    let result = user
-        .call(contract.id(), "edit_group")
-        .args_json(json!({
-            "id": group_id,
-            "update_group": {
-                "name": "Updated Test Group",
-                "description": "An updated test group"
+    match group {
+        ResponseResult::Err(_) => panic!("Group not found"),
+        ResponseResult::Ok(group) => {
+            // Now, edit the group
+            let result = user
+                .call(contract.id(), "edit_group")
+                .args_json(json!({
+                    "id": group.id,
+                    "update_group": {
+                        "name": "Updated Test Group",
+                        "description": "An updated test group"
+                    }
+                }))
+                .transact()
+                .await;
+
+            assert!(result.is_ok(), "Edit group should succeed");
+
+            // Verify the update
+            let updated_group = contract
+                .view("get_group")
+                .args_json(json!({"id": group.id}))
+                .await
+                .unwrap()
+                .json::<ResponseResult<GroupResponse>>()
+                .unwrap();
+
+            match updated_group {
+                ResponseResult::Err(_) => panic!("Group not found"),
+                ResponseResult::Ok(updated_group) => {
+                    assert_eq!(updated_group.name, "Updated Test Group");
+                }
             }
-        }))
-        .transact()
-        .await;
-
-    assert!(result.is_ok(), "Edit group should succeed");
-
-    // Verify the update
-    let updated_group = contract
-        .view("get_group")
-        .args_json(json!({"id": group_id}))
-        .await
-        .unwrap()
-        .json::<Option<GroupResponse>>()
-        .unwrap();
-
-    assert_eq!(updated_group.unwrap().name, "Updated Test Group");
+        }
+    }
     Ok(())
 }
 
@@ -162,11 +177,15 @@ async fn test_get_group_by_name() -> Result<(), Box<dyn std::error::Error>> {
         .args_json(json!({"name": "Unique Test Group"}))
         .await
         .unwrap()
-        .json::<Option<GroupResponse>>()
+        .json::<ResponseResult<GroupResponse>>()
         .unwrap();
 
-    assert!(result.is_some(), "Group should be found");
-    assert_eq!(result.unwrap().name, "Unique Test Group");
+    match result {
+        ResponseResult::Err(_) => panic!("Group not found"),
+        ResponseResult::Ok(group) => {
+            assert_eq!(group.name, "Unique Test Group");
+        }
+    }
 
     Ok(())
 }
@@ -240,7 +259,7 @@ async fn test_get_groups_by_id() -> Result<(), Box<dyn std::error::Error>> {
     // Add multiple groups and collect their IDs
     let mut group_ids = Vec::new();
     for i in 0..3 {
-        let group_id = user
+        let group = user
             .call(contract.id(), "add_group")
             .args_json(json!({
                 "post_group": {
@@ -256,9 +275,12 @@ async fn test_get_groups_by_id() -> Result<(), Box<dyn std::error::Error>> {
             .transact()
             .await
             .unwrap()
-            .json::<u32>()
+            .json::<ResponseResult<GroupResponse>>()
             .unwrap();
-        group_ids.push(group_id);
+
+        if let ResponseResult::Ok(group) = group {
+            group_ids.push(group.id);
+        }
     }
 
     // Get groups by ID
