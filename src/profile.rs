@@ -73,20 +73,4 @@ impl Contract {
         }
         profiles
     }
-
-    // pub fn edit_profile_no_insert(&mut self, update_profile: UpdateProfile) -> Option<()> {
-    //     let account_id = env::signer_account_id();
-    //     self.profiles.get_mut(&account_id)?.update(update_profile);
-
-    //     Some(())
-    // }
-
-    // pub fn edit_profile_with_insert(&mut self, update_profile: UpdateProfile) -> Option<()> {
-    //     let account_id = env::signer_account_id();
-    //     let updated_profile = self.profiles.get_mut(&account_id)?.update(update_profile);
-
-    //     self.profiles
-    //         .insert(account_id.clone(), updated_profile.clone());
-    //     Some(())
-    // }
 }
