@@ -80,7 +80,7 @@ impl Contract {
 
     pub fn edit_profile_no_insert(&mut self, update_profile: UpdateProfile) -> Option<()> {
         let account_id = env::signer_account_id();
-        self.profiles.get(&account_id)?.update(update_profile);
+        self.profiles.get_mut(&account_id)?.update(update_profile);
 
         Some(())
     }
