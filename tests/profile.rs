@@ -161,3 +161,83 @@ async fn test_get_profiles() -> Result<(), Box<dyn std::error::Error>> {
     );
     Ok(())
 }
+
+#[tokio::test]
+async fn test_edit_profile_no_insert() -> Result<(), Box<dyn std::error::Error>> {
+    let (_, contract, user_account) = init().await?;
+
+    let outcome_post_profile = user_account
+        .call(contract.id(), "add_profile")
+        .args_json(json!({"post_profile": {
+            "username": "new",
+            "display_name": "new",
+            "first_name": "new",
+            "last_name": "new",
+            "extra": "new"
+        }}))
+        .transact()
+        .await?;
+
+    assert!(outcome_post_profile.is_success());
+
+    let outcome_edit_profile = user_account
+        .call(contract.id(), "edit_profile_no_insert")
+        .args_json(json!({"update_profile": {
+            "display_name": "updated",
+            "first_name": "updated",
+            "last_name": "updated",
+        }}))
+        .transact()
+        .await?;
+
+    assert!(outcome_edit_profile.is_success());
+
+    let outcome_get_profile: ResponseResult<ProfileResponse> = user_account
+        .view(contract.id(), "get_profile")
+        .args_json(json!({ "account_id": user_account.id()}))
+        .await?
+        .json()?;
+
+    println!("outcome_get_profile: {:#?}", outcome_get_profile);
+    match outcome_get_profile {
+        ResponseResult::Ok(outcome_get_profile) => {
+            assert_eq!(outcome_get_profile.display_name, "updated");
+            assert_eq!(outcome_get_profile.first_name, "updated");
+            assert_eq!(outcome_get_profile.last_name, "updated");
+        }
+        ResponseResult::Err(_) => panic!("Profile not found"),
+    }
+    Ok(())
+}
+
+#[tokio::test]
+async fn test_edit_profile_with_insert() -> Result<(), Box<dyn std::error::Error>> {
+    let (_, contract, user_account) = init().await?;
+
+    let outcome_post_profile = user_account
+        .call(contract.id(), "add_profile")
+        .args_json(json!({"post_profile": {
+            "username": "new",
+            "display_name": "new",
+            "first_name": "new",
+            "last_name": "new",
+            "extra": "new"
+        }}))
+        .transact()
+        .await?;
+
+    assert!(outcome_post_profile.is_success());
+
+    let outcome_post_profile = user_account
+        .call(contract.id(), "edit_profile_with_insert")
+        .args_json(json!({"update_profile": {
+            "display_name": "updated",
+            "first_name": "updated",
+            "last_name": "updated",
+        }}))
+        .transact()
+        .await?;
+
+    assert!(outcome_post_profile.is_success());
+    Ok(())
+}
