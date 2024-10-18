@@ -25,6 +25,7 @@ async fn test_join_group() -> Result<(), Box<dyn std::error::Error>> {
     let (sandbox, contract, user) = init().await?;
 
     // First, create a profile for the user
+    // CREATED A PROFILE (INSERT)
     let _ = user
         .call(contract.id(), "add_profile")
         .args_json(json!({"post_profile": {
@@ -37,7 +38,13 @@ async fn test_join_group() -> Result<(), Box<dyn std::error::Error>> {
         .transact()
         .await?;
 
+    
     // Create a group
+    // CREATE A GROUP WHERE THE USER IS ADDED AS A MEMBER UPON INSERTION BY
+    ///```
+    /// members: Members::new_with_owner(env::signer_account_id()),
+    ///```
+    /// PROFILE IS NEVER UPDATED WITH TNE NEW GROUP ID 
     let group_id: u32 = user
         .call(contract.id(), "add_group")
         .args_json(json!({
@@ -59,7 +66,6 @@ async fn test_join_group() -> Result<(), Box<dyn std::error::Error>> {
 
     let new_user = sandbox.dev_create_account().await?;
 
-    // First, create a profile for the user
     let _ = new_user
         .call(contract.id(), "add_profile")
         .args_json(json!({"post_profile": {
@@ -72,7 +78,8 @@ async fn test_join_group() -> Result<(), Box<dyn std::error::Error>> {
         .transact()
         .await?;
 
-    // Join the group
+    // ONLY INSERTS THE USER IN THE GROUP (INSERT)
+    // DOES NOT INSERT THE GROUP ID IN THE USER
     let result = new_user
         .call(contract.id(), "join_group")
         .args_json(json!({ "group_id": group_id }))
@@ -81,7 +88,8 @@ async fn test_join_group() -> Result<(), Box<dyn std::error::Error>> {
 
     assert!(result.is_ok(), "Failed to join group: {:?}", result.err());
 
-    // Verify user is in the group
+    // ONLY CHECKS IF THE USER IS IN THE GROUP
+    // NOT IF THE GROUP IS ADDED TO THE USER PROFILE
     let is_in_group: bool = contract
         .view("is_user_in_group")
         .args_json(json!({
