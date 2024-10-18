@@ -34,19 +34,15 @@ impl Contract {
         update_profile: UpdateProfile,
     ) -> ResponseResult<ProfileResponse> {
         let account_id = env::signer_account_id();
-        match self.profiles.get(&account_id) {
+        match self.profiles.get_mut(&account_id) {
             None => ResponseResult::Err(GenericError::ProfileNotFound),
             Some(profile) => {
-                let updated_profile = profile.update(update_profile);
+                profile.update(update_profile);
 
-                self.profiles
-                    .insert(account_id.clone(), updated_profile.clone());
-
-                if updated_profile.is_filled() {
-                    match self.rewards.get(&account_id) {
+                if profile.is_filled() {
+                    match self.rewards.get_mut(&account_id) {
                         Some(reward) => {
-                            self.rewards
-                                .insert(account_id.clone(), reward.clone().profile_complete());
+                            reward.profile_complete();
                         }
                         None => {
                             self.rewards
@@ -56,7 +52,7 @@ impl Contract {
                 };
 
                 env::log_str("Profile updated");
-                ResponseResult::Ok(ProfileResponse::new(account_id, updated_profile.clone()))
+                ResponseResult::Ok(ProfileResponse::new(account_id, profile.clone()))
             }
         }
     }
@@ -78,19 +74,19 @@ impl Contract {
         profiles
     }
 
-    pub fn edit_profile_no_insert(&mut self, update_profile: UpdateProfile) -> Option<()> {
-        let account_id = env::signer_account_id();
-        self.profiles.get_mut(&account_id)?.update(update_profile);
+    // pub fn edit_profile_no_insert(&mut self, update_profile: UpdateProfile) -> Option<()> {
+    //     let account_id = env::signer_account_id();
+    //     self.profiles.get_mut(&account_id)?.update(update_profile);
 
-        Some(())
-    }
+    //     Some(())
+    // }
 
-    pub fn edit_profile_with_insert(&mut self, update_profile: UpdateProfile) -> Option<()> {
-        let account_id = env::signer_account_id();
-        let updated_profile = self.profiles.get_mut(&account_id)?.update(update_profile);
+    // pub fn edit_profile_with_insert(&mut self, update_profile: UpdateProfile) -> Option<()> {
+    //     let account_id = env::signer_account_id();
+    //     let updated_profile = self.profiles.get_mut(&account_id)?.update(update_profile);
 
-        self.profiles
-            .insert(account_id.clone(), updated_profile.clone());
-        Some(())
-    }
+    //     self.profiles
+    //         .insert(account_id.clone(), updated_profile.clone());
+    //     Some(())
+    // }
 }

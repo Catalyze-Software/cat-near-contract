@@ -67,40 +67,36 @@ impl Profile {
         self.joined_groups.clone()
     }
     //Check for None sent in UpdateProfile - Done
-    pub fn update(&self, profile: UpdateProfile) -> Self {
-        Self {
-            username: self.username.clone(), // Assuming username can't be changed
-            display_name: profile
-                .display_name
-                .unwrap_or_else(|| self.display_name.clone()),
-            first_name: profile
-                .first_name
-                .unwrap_or_else(|| self.first_name.clone()),
-            last_name: profile.last_name.unwrap_or_else(|| self.last_name.clone()),
-            about: profile.about.unwrap_or_else(|| self.about.clone()),
-            email: profile.email.unwrap_or_else(|| self.email.clone()),
-            date_of_birth: profile.date_of_birth.unwrap_or(self.date_of_birth),
-            city: profile.city.unwrap_or_else(|| self.city.clone()),
-            state_or_province: profile
-                .state_or_province
-                .unwrap_or_else(|| self.state_or_province.clone()),
-            country: profile.country.unwrap_or_else(|| self.country.clone()),
-            profile_image: profile
-                .profile_image
-                .unwrap_or_else(|| self.profile_image.clone()),
-            banner_image: profile
-                .banner_image
-                .unwrap_or_else(|| self.banner_image.clone()),
-            application_role: self.application_role.clone(),
-            joined_groups: self.joined_groups.clone(),
-            skills: profile.skills.unwrap_or_else(|| self.skills.clone()),
-            interests: profile.interests.unwrap_or_else(|| self.interests.clone()),
-            causes: profile.causes.unwrap_or_else(|| self.causes.clone()),
-            website: profile.website.unwrap_or_else(|| self.website.clone()),
-            extra: profile.extra.unwrap_or_else(|| self.extra.clone()),
-            updated_on: env::block_timestamp(),
-            created_on: self.created_on,
-        }
+    pub fn update(&mut self, profile: UpdateProfile) {
+        self.display_name = profile
+            .display_name
+            .unwrap_or_else(|| self.display_name.clone());
+        self.first_name = profile
+            .first_name
+            .unwrap_or_else(|| self.first_name.clone());
+        self.last_name = profile.last_name.unwrap_or_else(|| self.last_name.clone());
+        self.about = profile.about.unwrap_or_else(|| self.about.clone());
+        self.email = profile.email.unwrap_or_else(|| self.email.clone());
+        self.date_of_birth = profile.date_of_birth.unwrap_or(self.date_of_birth);
+        self.city = profile.city.unwrap_or_else(|| self.city.clone());
+        self.state_or_province = profile
+            .state_or_province
+            .unwrap_or_else(|| self.state_or_province.clone());
+        self.country = profile.country.unwrap_or_else(|| self.country.clone());
+        self.profile_image = profile
+            .profile_image
+            .unwrap_or_else(|| self.profile_image.clone());
+        self.banner_image = profile
+            .banner_image
+            .unwrap_or_else(|| self.banner_image.clone());
+        self.application_role = self.application_role.clone();
+        self.joined_groups = self.joined_groups.clone();
+        self.skills = profile.skills.unwrap_or_else(|| self.skills.clone());
+        self.interests = profile.interests.unwrap_or_else(|| self.interests.clone());
+        self.causes = profile.causes.unwrap_or_else(|| self.causes.clone());
+        self.website = profile.website.unwrap_or_else(|| self.website.clone());
+        self.extra = profile.extra.unwrap_or_else(|| self.extra.clone());
+        self.updated_on = env::block_timestamp();
     }
 
     pub fn is_filled(&self) -> bool {

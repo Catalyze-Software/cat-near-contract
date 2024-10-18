@@ -17,15 +17,14 @@ impl Contract {
         let account_id = env::predecessor_account_id();
 
         let group_id = self.group_id_counter;
-        match self.profiles.get(&account_id) {
+        match self.profiles.get_mut(&account_id) {
             None => ResponseResult::Err(GenericError::ProfileNotFound),
 
             Some(profile) => {
                 match self.groups.insert(group_id, post_group.into()) {
                     Some(_) => ResponseResult::Err(GenericError::GroupNotAdded),
                     None => {
-                        self.profiles
-                            .insert(account_id.clone(), profile.clone().add_group(group_id));
+                        profile.add_group(group_id);
 
                         env::log_str(&format!("Group added with id {}", group_id));
                         let group = self.groups.get(&group_id).unwrap(); // safely unwrap since we just inserted
@@ -43,14 +42,13 @@ impl Contract {
         id: u32,
         update_group: UpdateGroup,
     ) -> ResponseResult<GroupResponse> {
-        match self.groups.get(&id) {
+        match self.groups.get_mut(&id) {
             None => ResponseResult::Err(GenericError::GroupNotFound),
             Some(group) => {
-                let updated_group = group.clone().update(update_group);
-                self.groups.insert(id, updated_group.clone());
+                group.update(update_group);
 
                 env::log_str(&format!("Group {} updated", id));
-                ResponseResult::Ok(GroupResponse::new(id, updated_group))
+                ResponseResult::Ok(GroupResponse::new(id, group.clone()))
             }
         }
     }
@@ -91,32 +89,26 @@ impl Contract {
     pub fn join_group(&mut self, group_id: u32) -> ResponseResult<GroupResponse> {
         let account_id = env::predecessor_account_id();
 
-        match self.profiles.get(&account_id) {
+        match self.profiles.get_mut(&account_id) {
             None => ResponseResult::Err(GenericError::ProfileNotFound),
             Some(profile) => {
                 if profile.is_group_member(&group_id) {
                     return ResponseResult::Err(GenericError::AlreadyMember);
                 }
 
-                match self.groups.get(&group_id) {
+                match self.groups.get_mut(&group_id) {
                     None => ResponseResult::Err(GenericError::GroupNotFound),
                     Some(group) => {
                         if group.is_member(&account_id) {
                             return ResponseResult::Err(GenericError::UserAlreadyInGroup);
                         }
 
-                        let updated_group = group.clone().add_member(account_id.clone());
-                        self.groups.insert(group_id, updated_group.clone());
+                        group.add_member(account_id.clone());
+                        profile.add_group(group_id);
 
-                        self.profiles
-                            .insert(account_id.clone(), profile.clone().add_group(group_id));
-
-                        match self.rewards.get(&account_id) {
+                        match self.rewards.get_mut(&account_id) {
                             Some(reward) => {
-                                self.rewards.insert(
-                                    account_id.clone(),
-                                    reward.clone().group_join(group_id),
-                                );
+                                reward.group_join(group_id);
                             }
                             None => {
                                 self.rewards.insert(
@@ -127,7 +119,7 @@ impl Contract {
                         };
 
                         env::log_str(&format!("User {} joined group {}", account_id, group_id));
-                        ResponseResult::Ok(GroupResponse::new(group_id, updated_group.clone()))
+                        ResponseResult::Ok(GroupResponse::new(group_id, group.clone()))
                     }
                 }
             }
@@ -137,25 +129,22 @@ impl Contract {
     pub fn leave_group(&mut self, group_id: u32) -> ResponseResult<()> {
         let account_id = env::predecessor_account_id();
 
-        match self.profiles.get(&account_id) {
+        match self.profiles.get_mut(&account_id) {
             None => ResponseResult::Err(GenericError::ProfileNotFound),
             Some(profile) => {
                 if !profile.is_group_member(&group_id) {
                     return ResponseResult::Err(GenericError::NotMember);
                 }
 
-                self.profiles
-                    .insert(account_id.clone(), profile.clone().remove_group(group_id));
+                profile.remove_group(group_id);
 
-                match self.groups.get(&group_id) {
+                match self.groups.get_mut(&group_id) {
                     None => ResponseResult::Err(GenericError::GroupNotFound),
                     Some(group) => {
                         if !group.is_member(&account_id) {
                             return ResponseResult::Err(GenericError::NotMember);
                         }
-
-                        self.groups
-                            .insert(group_id, group.clone().remove_member(account_id.clone()));
+                        group.remove_member(account_id.clone());
 
                         env::log_str(&format!("User {} joined group {}", account_id, group_id));
                         ResponseResult::Ok(())

@@ -81,25 +81,21 @@ pub struct UpdateGroup {
 }
 
 impl GroupWithMembers {
-    pub fn update(&self, group: UpdateGroup) -> Self {
-        Self {
-            name: group.name.unwrap_or_else(|| self.name.clone()),
-            description: group
-                .description
-                .unwrap_or_else(|| self.description.clone()),
-            website: group.website.unwrap_or_else(|| self.website.clone()),
-            image: group.image.unwrap_or_else(|| self.image.clone()),
-            banner_image: group
-                .banner_image
-                .unwrap_or_else(|| self.banner_image.clone()),
-            owner: self.owner.clone(),
-            created_by: self.created_by.clone(),
-            members: self.members.clone(),
-            is_deleted: self.is_deleted,
-            updated_on: env::block_timestamp(),
-            created_on: self.created_on,
-            matrix_space_id: self.matrix_space_id.clone(),
-        }
+    pub fn update(&mut self, group: UpdateGroup) {
+        self.name = group.name.unwrap_or_else(|| self.name.clone());
+        self.description = group
+            .description
+            .unwrap_or_else(|| self.description.clone());
+        self.website = group.website.unwrap_or_else(|| self.website.clone());
+        self.image = group.image.unwrap_or_else(|| self.image.clone());
+        self.banner_image = group
+            .banner_image
+            .unwrap_or_else(|| self.banner_image.clone());
+        self.owner = self.owner.clone();
+        self.created_by = self.created_by.clone();
+        self.members = self.members.clone();
+        self.updated_on = env::block_timestamp();
+        self.matrix_space_id = self.matrix_space_id.clone();
     }
 
     pub fn set_owner(&mut self, owner: AccountId) -> Self {
