@@ -11,7 +11,7 @@ use near_sdk::{env, near, AccountId};
 #[near]
 impl Contract {
     pub fn add_profile(&mut self, post_profile: PostProfile) -> ResponseResult<ProfileResponse> {
-        let account_id = env::signer_account_id();
+        let account_id = env::predecessor_account_id();
         match self
             .profiles
             .insert(account_id.clone(), post_profile.into())
@@ -33,7 +33,7 @@ impl Contract {
         &mut self,
         update_profile: UpdateProfile,
     ) -> ResponseResult<ProfileResponse> {
-        let account_id = env::signer_account_id();
+        let account_id = env::predecessor_account_id();
         match self.profiles.get_mut(&account_id) {
             None => ResponseResult::Err(GenericError::ProfileNotFound),
             Some(profile) => {
