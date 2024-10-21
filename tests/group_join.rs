@@ -1,7 +1,7 @@
+use cat_near_contract::models::{groups::GroupResponse, response_result::ResponseResult};
 use near_sdk::serde_json::json;
 use near_sdk::AccountId;
 use near_workspaces::{network::Sandbox, Account, Contract, Worker};
-use std::collections::HashMap;
 
 async fn init() -> Result<(Worker<Sandbox>, Contract, Account), Box<dyn std::error::Error>> {
     let sandbox = near_workspaces::sandbox().await?;
@@ -38,7 +38,7 @@ async fn test_join_group() -> Result<(), Box<dyn std::error::Error>> {
         .await?;
 
     // Create a group
-    let group_id: u32 = user
+    let group = user
         .call(contract.id(), "add_group")
         .args_json(json!({
             "post_group": {
@@ -54,7 +54,7 @@ async fn test_join_group() -> Result<(), Box<dyn std::error::Error>> {
         .transact()
         .await
         .unwrap()
-        .json::<u32>()
+        .json::<ResponseResult<GroupResponse>>()
         .unwrap();
 
     let new_user = sandbox.dev_create_account().await?;
@@ -72,26 +72,31 @@ async fn test_join_group() -> Result<(), Box<dyn std::error::Error>> {
         .transact()
         .await?;
 
-    // Join the group
-    let result = new_user
-        .call(contract.id(), "join_group")
-        .args_json(json!({ "group_id": group_id }))
-        .transact()
-        .await;
+    match group {
+        ResponseResult::Err(_) => panic!("Group not found"),
+        ResponseResult::Ok(group) => {
+            // Join the group
+            let result = new_user
+                .call(contract.id(), "join_group")
+                .args_json(json!({ "group_id": group.id }))
+                .transact()
+                .await;
 
-    assert!(result.is_ok(), "Failed to join group: {:?}", result.err());
+            assert!(result.is_ok(), "Failed to join group: {:?}", result.err());
 
-    // Verify user is in the group
-    let is_in_group: bool = contract
-        .view("is_user_in_group")
-        .args_json(json!({
-            "account_id": new_user.id(),
-            "group_id": group_id
-        }))
-        .await?
-        .json()?;
+            // Verify user is in the group
+            let is_in_group: bool = contract
+                .view("is_user_in_group")
+                .args_json(json!({
+                    "account_id": new_user.id(),
+                    "group_id": group.id
+                }))
+                .await?
+                .json()?;
 
-    assert!(is_in_group, "User should be in the group");
+            assert!(is_in_group, "User should be in the group");
+        }
+    }
 
     Ok(())
 }
@@ -114,7 +119,7 @@ async fn test_leave_group() -> Result<(), Box<dyn std::error::Error>> {
         .await?;
 
     // Create a group
-    let group_id: u32 = user
+    let group = user
         .call(contract.id(), "add_group")
         .args_json(json!({
             "post_group": {
@@ -130,33 +135,38 @@ async fn test_leave_group() -> Result<(), Box<dyn std::error::Error>> {
         .transact()
         .await
         .unwrap()
-        .json::<u32>()
+        .json::<ResponseResult<GroupResponse>>()
         .unwrap();
 
-    // Leave the group
-    let result = user
-        .call(contract.id(), "leave_group")
-        .args_json(json!({ "group_id": group_id }))
-        .transact()
-        .await;
+    match group {
+        ResponseResult::Err(_) => panic!("Group not found"),
+        ResponseResult::Ok(group) => {
+            // Leave the group
+            let result = user
+                .call(contract.id(), "leave_group")
+                .args_json(json!({ "group_id": group.id }))
+                .transact()
+                .await;
 
-    println!("result: {:#?}", result);
+            println!("result: {:#?}", result);
 
-    assert!(result.is_ok(), "Failed to leave group: {:?}", result.err());
+            assert!(result.is_ok(), "Failed to leave group: {:?}", result.err());
 
-    // Verify user is not in the group
-    let is_in_group: bool = contract
-        .view("is_user_in_group")
-        .args_json(json!({
-            "account_id": user.id(),
-            "group_id": group_id
-        }))
-        .await?
-        .json()?;
+            // Verify user is not in the group
+            let is_in_group: bool = contract
+                .view("is_user_in_group")
+                .args_json(json!({
+                    "account_id": user.id(),
+                    "group_id": group.id
+                }))
+                .await?
+                .json()?;
 
-    println!("is_in_group: {:#?}", is_in_group);
+            println!("is_in_group: {:#?}", is_in_group);
 
-    assert!(!is_in_group, "User should not be in the group");
+            assert!(!is_in_group, "User should not be in the group");
+        }
+    }
 
     Ok(())
 }
@@ -181,7 +191,7 @@ async fn test_get_user_groups() -> Result<(), Box<dyn std::error::Error>> {
 
     let mut group_ids = vec![];
     for i in 0..3 {
-        let group_id: u32 = user
+        let group: ResponseResult<GroupResponse> = user
             .call(contract.id(), "add_group")
             .args_json(json!({
                     "post_group": {
@@ -196,9 +206,14 @@ async fn test_get_user_groups() -> Result<(), Box<dyn std::error::Error>> {
             }
                 ))
             .transact()
-            .await?
-            .json()?;
-        group_ids.push(group_id);
+            .await
+            .unwrap()
+            .json::<ResponseResult<GroupResponse>>()
+            .unwrap();
+
+        if let ResponseResult::Ok(group) = group {
+            group_ids.push(group.id);
+        }
     }
 
     // Get user groups
@@ -254,7 +269,7 @@ async fn test_get_group_members() -> Result<(), Box<dyn std::error::Error>> {
     }
 
     // Create a group
-    let group_id: u32 = user
+    let group = user
         .call(contract.id(), "add_group")
         .args_json(json!({
             "post_group": {
@@ -270,39 +285,43 @@ async fn test_get_group_members() -> Result<(), Box<dyn std::error::Error>> {
         .transact()
         .await
         .unwrap()
-        .json::<u32>()
+        .json::<ResponseResult<GroupResponse>>()
         .unwrap();
 
-    for user in &users {
-        let _ = user
-            .call(contract.id(), "join_group")
-            .args_json(json!({ "group_id": group_id }))
-            .transact()
-            .await?;
-    }
+    match group {
+        ResponseResult::Err(_) => panic!("Group not found"),
+        ResponseResult::Ok(group) => {
+            for user in &users {
+                let _ = user
+                    .call(contract.id(), "join_group")
+                    .args_json(json!({ "group_id": group.id }))
+                    .transact()
+                    .await?;
+            }
 
-    // Get group members
-    let group_members: HashMap<AccountId, String> = contract
-        .view("get_group_members")
-        .args_json(json!({ "group_id": group_id }))
-        .await?
-        .json()?;
+            let group_members: Vec<(AccountId, String)> = contract
+                .view("get_group_members")
+                .args_json(json!({ "group_id": group.id }))
+                .await?
+                .json()?;
 
-    println!("Group members {:#?}", group_members);
+            println!("Group members {:#?}", group_members);
 
-    assert_eq!(group_members.len(), 4, "Group should have 4 members"); // three new users and one group creator as the owner
-    for user in &users {
-        assert!(
-            group_members.contains_key(user.id()),
-            "User {} should be in the group",
-            user.id()
-        );
-        assert_eq!(
-            group_members.get(user.id()).unwrap(),
-            "Member",
-            "User {} should have Member role",
-            user.id()
-        );
+            assert_eq!(group_members.len(), 4, "Group should have 4 members"); // three new users and one group creator as the owner
+            for user in &users {
+                assert!(
+                    group_members.iter().any(|d| &d.0 == user.id()),
+                    "User {} should be in the group",
+                    user.id()
+                );
+                assert_eq!(
+                    group_members.iter().find(|d| &d.0 == user.id()).unwrap().1,
+                    "Member",
+                    "User {} should have Member role",
+                    user.id()
+                );
+            }
+        }
     }
 
     Ok(())
@@ -327,7 +346,7 @@ async fn test_get_user_role_in_group() -> Result<(), Box<dyn std::error::Error>>
         .await?;
 
     // Create a group
-    let group_id: u32 = user
+    let group = user
         .call(contract.id(), "add_group")
         .args_json(json!({
             "post_group": {
@@ -343,24 +362,29 @@ async fn test_get_user_role_in_group() -> Result<(), Box<dyn std::error::Error>>
         .transact()
         .await
         .unwrap()
-        .json::<u32>()
+        .json::<ResponseResult<GroupResponse>>()
         .unwrap();
 
-    // Get user role in group
-    let user_role: Option<String> = contract
-        .view("get_user_role_in_group")
-        .args_json(json!({
-            "account_id": user.id(),
-            "group_id": group_id
-        }))
-        .await?
-        .json()?;
+    match group {
+        ResponseResult::Err(_) => panic!("Group not found"),
+        ResponseResult::Ok(group) => {
+            // Get user role in group
+            let user_role: Option<(AccountId, String)> = contract
+                .view("get_user_role_in_group")
+                .args_json(json!({
+                    "account_id": user.id(),
+                    "group_id": group.id
+                }))
+                .await?
+                .json()?;
 
-    assert_eq!(
-        user_role,
-        Some("Owner".to_string()),
-        "User should have Owner role in the group"
-    );
+            assert_eq!(
+                user_role,
+                Some((user.id().clone(), "Owner".to_string())),
+                "User should have Owner role in the group"
+            );
+        }
+    }
 
     Ok(())
 }

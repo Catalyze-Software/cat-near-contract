@@ -1,4 +1,4 @@
-use cat_near_contract::models::profile::ProfileResponse;
+use cat_near_contract::models::{profile::ProfileResponse, response_result::ResponseResult};
 use near_workspaces::{network::Sandbox, Account, Contract, Worker};
 use serde_json::json;
 
@@ -98,18 +98,23 @@ async fn test_get_profile() -> Result<(), Box<dyn std::error::Error>> {
         .transact()
         .await?;
 
-    let outcome_get_profile: ProfileResponse = user_account
+    let outcome_get_profile: ResponseResult<ProfileResponse> = user_account
         .view(contract.id(), "get_profile")
         .args_json(json!({ "account_id": user_account.id()}))
         .await?
         .json()?;
 
-    assert_eq!(outcome_get_profile.username, "jassification");
-    assert_eq!(outcome_get_profile.display_name, "Jas");
-    assert_eq!(outcome_get_profile.first_name, "Jaswinder");
-    assert_eq!(outcome_get_profile.last_name, "Singh");
+    match outcome_get_profile {
+        ResponseResult::Ok(outcome_get_profile) => {
+            assert_eq!(outcome_get_profile.username, "jassification");
+            assert_eq!(outcome_get_profile.display_name, "Jas");
+            assert_eq!(outcome_get_profile.first_name, "Jaswinder");
+            assert_eq!(outcome_get_profile.last_name, "Singh");
+            println!("outcome_get_profile: {:#?}", outcome_get_profile);
+        }
+        ResponseResult::Err(_) => panic!("Profile not found"),
+    }
 
-    println!("outcome_get_profile: {:#?}", outcome_get_profile);
     Ok(())
 }
 

@@ -1,4 +1,6 @@
+use crate::error::GenericError;
 use crate::models::profile::{PostProfile, ProfileResponse, UpdateProfile};
+use crate::models::response_result::ResponseResult;
 use crate::models::rewards::Rewards;
 use crate::{Contract, ContractExt};
 use near_sdk::{env, near, AccountId};
@@ -8,40 +10,58 @@ use near_sdk::{env, near, AccountId};
 
 #[near]
 impl Contract {
-    pub fn add_profile(&mut self, post_profile: PostProfile) {
-        let account_id = env::signer_account_id();
-        self.profiles.insert(account_id, post_profile.into());
-        env::log_str("Profile added");
+    pub fn add_profile(&mut self, post_profile: PostProfile) -> ResponseResult<ProfileResponse> {
+        let account_id = env::predecessor_account_id();
+        match self
+            .profiles
+            .insert(account_id.clone(), post_profile.into())
+        {
+            Some(_) => ResponseResult::Err(GenericError::ProfileAlreadyExists),
+            None => {
+                env::log_str("Profile added");
+                self.rewards.insert(account_id.clone(), Rewards::default());
+
+                ResponseResult::Ok(ProfileResponse::new(
+                    account_id.clone(),
+                    self.profiles.get(&account_id).unwrap().clone(),
+                ))
+            }
+        }
     }
 
-    pub fn edit_profile(&mut self, update_profile: UpdateProfile) -> Option<()> {
-        let account_id = env::signer_account_id();
-        let current_profile = self.profiles.get(&account_id)?;
+    pub fn edit_profile(
+        &mut self,
+        update_profile: UpdateProfile,
+    ) -> ResponseResult<ProfileResponse> {
+        let account_id = env::predecessor_account_id();
+        match self.profiles.get_mut(&account_id) {
+            None => ResponseResult::Err(GenericError::ProfileNotFound),
+            Some(profile) => {
+                profile.update(update_profile);
 
-        //instead of cloning the while current profile here, only clone internally what is needed.
-        let updated_profile = current_profile.update(update_profile);
+                if profile.is_filled() {
+                    match self.rewards.get_mut(&account_id) {
+                        Some(reward) => {
+                            reward.profile_complete();
+                        }
+                        None => {
+                            self.rewards
+                                .insert(account_id.clone(), Rewards::default().profile_complete());
+                        }
+                    };
+                };
 
-        if updated_profile.is_filled() {
-            match self.rewards.get_mut(&account_id) {
-                Some(reward) => {
-                    reward.profile_complete();
-                }
-                None => {
-                    let mut new_reward = Rewards::default();
-                    new_reward.profile_complete();
-                    self.rewards.insert(account_id.clone(), new_reward);
-                }
-            };
-        };
-
-        self.profiles.insert(account_id, updated_profile);
-        env::log_str("Profile updated");
-        Some(())
+                env::log_str("Profile updated");
+                ResponseResult::Ok(ProfileResponse::new(account_id, profile.clone()))
+            }
+        }
     }
 
-    pub fn get_profile(&self, account_id: AccountId) -> Option<ProfileResponse> {
-        let profile = self.profiles.get(&account_id)?;
-        Some(ProfileResponse::new(account_id, profile.clone()))
+    pub fn get_profile(&self, account_id: AccountId) -> ResponseResult<ProfileResponse> {
+        self.profiles.get(&account_id).map_or_else(
+            || ResponseResult::Err(GenericError::ProfileNotFound),
+            |profile| ResponseResult::Ok(ProfileResponse::new(account_id, profile.clone())),
+        )
     }
 
     pub fn get_profiles(&self, account_ids: Vec<AccountId>) -> Vec<ProfileResponse> {

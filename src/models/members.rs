@@ -33,7 +33,7 @@ impl Members {
         }
     }
 
-    pub fn is_member(&self, member: AccountId) -> bool {
-        self.members.contains_key(&member)
+    pub fn is_member(&self, member: &AccountId) -> bool {
+        self.members.contains_key(member)
     }
 }

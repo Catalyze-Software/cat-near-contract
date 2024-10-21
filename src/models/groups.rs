@@ -27,8 +27,8 @@ impl Default for GroupWithMembers {
             website: Default::default(),
             image: Default::default(),
             banner_image: Default::default(),
-            owner: env::signer_account_id(),
-            created_by: env::signer_account_id(),
+            owner: env::predecessor_account_id(),
+            created_by: env::predecessor_account_id(),
             members: Default::default(),
             is_deleted: Default::default(),
             updated_on: Default::default(),
@@ -58,9 +58,9 @@ impl From<PostGroup> for GroupWithMembers {
             website: group.website,
             image: group.image,
             banner_image: group.banner_image,
-            owner: env::signer_account_id(),
-            created_by: env::signer_account_id(),
-            members: Members::new_with_owner(env::signer_account_id()),
+            owner: env::predecessor_account_id(),
+            created_by: env::predecessor_account_id(),
+            members: Members::new_with_owner(env::predecessor_account_id()),
             is_deleted: false,
             updated_on: env::block_timestamp(),
             created_on: env::block_timestamp(),
@@ -81,25 +81,21 @@ pub struct UpdateGroup {
 }
 
 impl GroupWithMembers {
-    pub fn update(&self, group: UpdateGroup) -> Self {
-        Self {
-            name: group.name.unwrap_or_else(|| self.name.clone()),
-            description: group
-                .description
-                .unwrap_or_else(|| self.description.clone()),
-            website: group.website.unwrap_or_else(|| self.website.clone()),
-            image: group.image.unwrap_or_else(|| self.image.clone()),
-            banner_image: group
-                .banner_image
-                .unwrap_or_else(|| self.banner_image.clone()),
-            owner: self.owner.clone(),
-            created_by: self.created_by.clone(),
-            members: self.members.clone(),
-            is_deleted: self.is_deleted,
-            updated_on: env::block_timestamp(),
-            created_on: self.created_on,
-            matrix_space_id: self.matrix_space_id.clone(),
-        }
+    pub fn update(&mut self, group: UpdateGroup) {
+        self.name = group.name.unwrap_or_else(|| self.name.clone());
+        self.description = group
+            .description
+            .unwrap_or_else(|| self.description.clone());
+        self.website = group.website.unwrap_or_else(|| self.website.clone());
+        self.image = group.image.unwrap_or_else(|| self.image.clone());
+        self.banner_image = group
+            .banner_image
+            .unwrap_or_else(|| self.banner_image.clone());
+        self.owner = self.owner.clone();
+        self.created_by = self.created_by.clone();
+        self.members = self.members.clone();
+        self.updated_on = env::block_timestamp();
+        self.matrix_space_id = self.matrix_space_id.clone();
     }
 
     pub fn set_owner(&mut self, owner: AccountId) -> Self {
@@ -118,15 +114,33 @@ impl GroupWithMembers {
         self.members.members.keys().cloned().collect()
     }
 
-    pub fn remove_member(&mut self, member: AccountId) {
+    pub fn remove_member(&mut self, member: AccountId) -> Self {
         self.members.members.remove(&member);
+        self.clone()
     }
 
-    pub fn add_member(&mut self, member: AccountId) {
+    pub fn get_member_with_role(&self, member: &AccountId) -> Option<(AccountId, ApplicationRole)> {
+        self.members
+            .members
+            .iter()
+            .find(|(k, _)| k == &member)
+            .map(|(k, v)| (k.clone(), v.clone()))
+    }
+
+    pub fn get_members_with_roles(&self) -> Vec<(AccountId, ApplicationRole)> {
+        self.members
+            .members
+            .iter()
+            .map(|(k, v)| (k.clone(), v.clone()))
+            .collect()
+    }
+
+    pub fn add_member(&mut self, member: AccountId) -> Self {
         self.members.members.insert(member, ApplicationRole::Member);
+        self.clone()
     }
 
-    pub fn is_member(&self, member: AccountId) -> bool {
+    pub fn is_member(&self, member: &AccountId) -> bool {
         self.members.is_member(member)
     }
 }
